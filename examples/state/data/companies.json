@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "companies": [
+    {
+      "id": "COMP-ACME",
+      "name": "Acme",
+      "careers_url": "https://careers.example.com/jobs",
+      "interest_level": "high",
+      "active": true,
+      "locations_of_interest": ["Seattle, WA", "USA - Remote"],
+      "sponsorship_policy": "verify_per_role",
+      "notes": "Fictional example. Prioritize senior product analytics and experimentation roles."
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "candidate": {
+    "name": "Alex Chen",
+    "headline": "Senior Analytics Engineer focused on experimentation",
+    "location": "Seattle, WA",
+    "region": "Greater Seattle Area",
+    "years_of_experience": "6+",
+    "current_employer": "ExampleCo"
+  },
+  "education": [
+    {
+      "degree_level": "bachelors",
+      "degree": "BS",
+      "field": "Statistics",
+      "institution": "Example University",
+      "end_date": "2019-06"
+    }
+  ],
+  "experiences": [
+    {
+      "company": "ExampleCo",
+      "title": "Senior Analytics Engineer",
+      "start_date": "2022-04",
+      "end_date": null,
+      "current": true,
+      "highlights": [
+        "Built trusted product metrics with SQL, dbt, and Snowflake.",
+        "Designed and analyzed online experiments for growth products.",
+        "Mentored analysts and partnered with engineering leaders."
+      ]
+    }
+  ],
+  "skills": {
+    "analytics": ["experimentation", "causal inference", "product metrics"],
+    "engineering": ["SQL", "Python", "dbt", "Airflow", "Snowflake"]
+  },
+  "domain_experience": ["consumer technology", "e-commerce"],
+  "target_roles": [
+    "Senior Analytics Engineer",
+    "Senior Data Scientist",
+    "Product Data Scientist"
+  ],
+  "roles_to_avoid": ["new graduate roles", "people-manager roles"],
+  "source": "resume/resume.md",
+  "notes": "Fictional example. Prefer senior individual-contributor roles."
+}

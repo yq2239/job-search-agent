@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "hard_filters": {
+    "requires_employer_sponsorship_or_h1b_transfer": true,
+    "immigration_context": {
+      "current_status": "H-1B",
+      "store_receipt_or_case_numbers": false
+    },
+    "allowed_location_group": "seattle_or_exceptional_us_remote",
+    "allowed_locations": ["Seattle, WA", "Bellevue, WA", "Redmond, WA", "USA - Remote"],
+    "remote_policy": "allow_us_remote_only_for_exceptional_fit",
+    "exclude_if_minimum_education_is": ["masters", "phd"],
+    "candidate_highest_degree": "bachelors"
+  },
+  "unknown_fact_policy": "manual_review",
+  "never_auto_apply": true
+}

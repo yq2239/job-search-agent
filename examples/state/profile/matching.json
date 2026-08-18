@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "minimum_recommendation_score": 75,
+  "weights": {
+    "skills_and_experience": 35,
+    "responsibility_fit": 25,
+    "career_interest": 15,
+    "location_preference": 10,
+    "compensation": 5,
+    "company_interest": 10
+  },
+  "notes": "Fictional example. Prefer senior IC roles with experimentation ownership."
+}
