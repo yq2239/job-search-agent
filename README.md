@@ -420,10 +420,24 @@ python3 -m jobtracker list-companies
 ```
 
 The dashboard automatically loads a company's real favicon from the HTTPS host in
-`careers_url`. If a company is not configured yet, it tries the official posting
-host; if neither icon is available, it falls back to generated initials. For the
-best automatic result, use a company-controlled careers URL rather than a generic
-ATS landing page.
+`careers_url`. If the careers portal does not expose the company's real icon, add
+an optional company-controlled `icon_url`; it takes priority over the inferred
+favicon. If a company is not configured yet, the dashboard tries the official
+posting host and finally falls back to generated initials.
+
+```json
+{
+  "name": "TikTok",
+  "careers_url": "https://lifeattiktok.com/search/",
+  "icon_url": "https://www.tiktok.com/favicon.ico"
+}
+```
+
+Tesla may return HTTP 403 to local automated checks even while a posting is live.
+For that case only, `add-job` accepts `--verification-snapshot PATH`: a JSON
+snapshot from Tesla's official careers-state endpoint captured within the last 24
+hours. The command still fails closed unless requisition ID, title, location, and
+Apply availability all match exactly.
 
 ## Working with an AI agent
 

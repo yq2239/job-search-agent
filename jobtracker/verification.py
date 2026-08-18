@@ -5,7 +5,7 @@ import json
 import re
 import ssl
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -19,6 +19,8 @@ SYSTEM_CA_FILE = Path("/etc/ssl/cert.pem")
 GREENHOUSE_WRAPPER_BOARDS = {
     "careers.withwaymo.com": "waymo",
 }
+TESLA_CAREERS_STATE_URL = "https://www.tesla.com/cua-api/apps/careers/state"
+TESLA_SNAPSHOT_MAX_AGE = timedelta(hours=24)
 
 
 def utc_now() -> str:
@@ -121,6 +123,58 @@ def classify_workday_job_json(payload: str, expected_title: str) -> tuple[str, s
     if not posting.get("jobReqId") or not posting.get("externalUrl"):
         return "unknown", "official Workday response lacked a live posting identifier"
     return "active", "official Workday API returned the expected live, applyable posting"
+
+
+def _normalized_location(value: str) -> str:
+    return re.sub(r"\s+", " ", value.strip().casefold()).replace(", california", ", ca")
+
+
+def verify_tesla_snapshot(
+    snapshot_path: Path,
+    posting_url: str,
+    expected_title: str,
+    expected_source_job_id: str | None,
+    expected_location: str,
+) -> VerificationResult:
+    """Verify a Tesla role against a fresh snapshot of Tesla's official careers feed."""
+    checked_at = utc_now()
+    parts = urlsplit(posting_url)
+    match = re.search(r"(?:-|/)(\d{5,})/?$", parts.path)
+    if parts.scheme != "https" or parts.netloc.casefold() != "www.tesla.com" or not match:
+        return VerificationResult("unknown", checked_at, "Tesla snapshot requires an official Tesla job URL with a requisition ID")
+    posting_id = match.group(1)
+    if expected_source_job_id and expected_source_job_id != posting_id:
+        return VerificationResult("unknown", checked_at, "Tesla requisition ID did not match the official posting URL")
+    try:
+        snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        captured_at = datetime.fromisoformat(str(snapshot["captured_at"]).replace("Z", "+00:00"))
+    except (OSError, json.JSONDecodeError, KeyError, ValueError):
+        return VerificationResult("unknown", checked_at, "Tesla verification snapshot was missing or invalid")
+    if captured_at.tzinfo is None:
+        return VerificationResult("unknown", checked_at, "Tesla verification snapshot timestamp lacked a timezone")
+    age = datetime.now(timezone.utc) - captured_at.astimezone(timezone.utc)
+    if age < timedelta(minutes=-5) or age > TESLA_SNAPSHOT_MAX_AGE:
+        return VerificationResult("unknown", checked_at, "Tesla verification snapshot was not captured within the last 24 hours")
+    if snapshot.get("source_url") != TESLA_CAREERS_STATE_URL:
+        return VerificationResult("unknown", checked_at, "Tesla verification snapshot did not identify the official careers feed")
+    jobs = snapshot.get("jobs")
+    if not isinstance(jobs, list):
+        return VerificationResult("unknown", checked_at, "Tesla verification snapshot did not contain a job list")
+    for job in jobs:
+        if not isinstance(job, dict) or str(job.get("id", "")) != posting_id:
+            continue
+        if str(job.get("title", "")).casefold() != expected_title.casefold():
+            return VerificationResult("unknown", checked_at, "official Tesla snapshot title did not match the expected title")
+        if _normalized_location(str(job.get("location", ""))) != _normalized_location(expected_location):
+            return VerificationResult("unknown", checked_at, "official Tesla snapshot location did not match the expected location")
+        if job.get("apply") is not True:
+            return VerificationResult("unknown", checked_at, "official Tesla snapshot lacked a live Apply action")
+        return VerificationResult(
+            "active",
+            checked_at,
+            f"fresh official Tesla careers snapshot confirmed requisition {posting_id}, exact title/location, and Apply action",
+        )
+    return VerificationResult("closed", checked_at, f"requisition {posting_id} was absent from the fresh official Tesla careers snapshot")
 
 
 def verify_job_url(url: str, expected_title: str, timeout: float = 35.0) -> VerificationResult:

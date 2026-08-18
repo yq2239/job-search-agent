@@ -89,6 +89,12 @@ class WebTests(unittest.TestCase):
         self.assertIn(b'aria-label="Reddit"', body)
         self.assertIn(b"logos.NVIDIA", body)
         self.assertIn(b'aria-label="NVIDIA"', body)
+        self.assertIn(b"logos.TikTok", body)
+        self.assertIn(b'aria-label="TikTok"', body)
+        self.assertIn(b"logos.ByteDance", body)
+        self.assertIn(b'aria-label="ByteDance"', body)
+        self.assertIn(b"logos.Adobe", body)
+        self.assertIn(b'aria-label="Adobe"', body)
         self.assertIn(b"role-line", body)
         self.assertIn(b"Status history", body)
         self.assertIn(b"status-chip", body)
@@ -119,6 +125,17 @@ class WebTests(unittest.TestCase):
         status, body = self.request("POST", path + "/notes", {"body": "Referral pending"})
         self.assertEqual(status, 200)
         self.assertEqual(json.loads(body)["job"]["notes"][0]["body"], "Referral pending")
+
+    def test_company_icon_override_takes_priority(self):
+        self.companies.write_text(json.dumps({"companies": [{
+            "name": "TikTok",
+            "careers_url": "https://lifeattiktok.com/search/",
+            "icon_url": "https://www.tiktok.com/favicon.ico",
+        }]}))
+        self.assertEqual(
+            company_icon_urls(self.companies),
+            {"TikTok": "https://www.tiktok.com/favicon.ico"},
+        )
 
 
 if __name__ == "__main__":

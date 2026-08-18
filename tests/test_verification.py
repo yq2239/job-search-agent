@@ -1,10 +1,15 @@
+import json
+import tempfile
 import unittest
+from datetime import datetime, timezone
+from pathlib import Path
 
 from jobtracker.verification import (
     classify_greenhouse_job_json,
     classify_official_posting_html,
     classify_workday_job_json,
     greenhouse_api_url,
+    verify_tesla_snapshot,
     workday_api_url,
 )
 
@@ -72,6 +77,42 @@ class VerificationTests(unittest.TestCase):
         '''
         availability, _ = classify_official_posting_html(page, "AI Engineer")
         self.assertEqual(availability, "active")
+
+    def test_fresh_official_tesla_snapshot_verifies_exact_role(self):
+        with tempfile.TemporaryDirectory() as directory:
+            snapshot = Path(directory) / "tesla.json"
+            snapshot.write_text(json.dumps({
+                "source_url": "https://www.tesla.com/cua-api/apps/careers/state",
+                "captured_at": datetime.now(timezone.utc).isoformat(),
+                "jobs": [{"id": "261090", "title": "AI Engineer, Computer Use Agents, Digital Optimus",
+                          "location": "Palo Alto, California", "apply": True}],
+            }))
+            result = verify_tesla_snapshot(
+                snapshot,
+                "https://www.tesla.com/careers/search/job/ai-engineer-computer-use-agents-digital-optimus-261090",
+                "AI Engineer, Computer Use Agents, Digital Optimus",
+                "261090",
+                "Palo Alto, CA",
+            )
+            self.assertEqual(result.availability, "active")
+
+    def test_tesla_snapshot_fails_closed_on_title_mismatch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            snapshot = Path(directory) / "tesla.json"
+            snapshot.write_text(json.dumps({
+                "source_url": "https://www.tesla.com/cua-api/apps/careers/state",
+                "captured_at": datetime.now(timezone.utc).isoformat(),
+                "jobs": [{"id": "261090", "title": "Different Role",
+                          "location": "Palo Alto, California", "apply": True}],
+            }))
+            result = verify_tesla_snapshot(
+                snapshot,
+                "https://www.tesla.com/careers/search/job/role-261090",
+                "Expected Role",
+                "261090",
+                "Palo Alto, CA",
+            )
+            self.assertEqual(result.availability, "unknown")
 
 
 if __name__ == "__main__":

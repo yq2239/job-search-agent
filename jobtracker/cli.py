@@ -13,7 +13,7 @@ from .paths import (
     initialize_state,
     resolve_state_paths,
 )
-from .verification import verify_job_url
+from .verification import verify_job_url, verify_tesla_snapshot
 
 
 def print_json(value: object) -> None:
@@ -55,6 +55,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     add.add_argument("--fit-score", type=int, choices=range(0, 101), default=0, metavar="0..100")
     add.add_argument("--evidence", default="")
+    add.add_argument(
+        "--verification-snapshot",
+        type=Path,
+        help="fresh official Tesla careers snapshot for sites that block local verification",
+    )
 
     recommendations = sub.add_parser("recommendations", help="list eligible non-terminal jobs")
     recommendations.add_argument("--minimum-score", type=int)
@@ -141,7 +146,17 @@ def main(argv: list[str] | None = None) -> int:
 
         store = JobStore(paths.jobs, paths.requirements)
         if args.command == "add-job":
-            verification = verify_job_url(args.url, args.title)
+            verification = (
+                verify_tesla_snapshot(
+                    args.verification_snapshot,
+                    args.url,
+                    args.title,
+                    args.source_job_id,
+                    args.location,
+                )
+                if args.verification_snapshot
+                else verify_job_url(args.url, args.title)
+            )
             if verification.availability != "active":
                 raise ValueError(verification.verification_evidence)
             job, created = store.add(

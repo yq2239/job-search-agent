@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ipaddress
 import json
+import re
 import threading
 import webbrowser
 from http import HTTPStatus
@@ -13,6 +14,25 @@ from .core import JobStore, VALID_STATUSES, load_json
 from .web_ui import DASHBOARD_HTML
 
 MAX_BODY_BYTES = 8192
+SAFE_IMAGE_DATA_URL = re.compile(
+    r"data:image/(?:png|x-icon|vnd\.microsoft\.icon);base64,[A-Za-z0-9+/=]+\Z"
+)
+
+
+def safe_company_icon_url(value: object) -> str | None:
+    if not isinstance(value, str) or not value:
+        return None
+    if len(value) <= 200_000 and SAFE_IMAGE_DATA_URL.fullmatch(value):
+        return value
+    parsed = urlsplit(value)
+    host = parsed.hostname
+    if parsed.scheme != "https" or not host or "." not in host:
+        return None
+    try:
+        ipaddress.ip_address(host)
+    except ValueError:
+        return value
+    return None
 
 
 def json_bytes(value: object) -> bytes:
@@ -33,7 +53,13 @@ def company_icon_urls(companies_path: Path | None) -> dict[str, str]:
             continue
         name = company.get("name")
         careers_url = company.get("careers_url")
-        if not isinstance(name, str) or not name.strip() or not isinstance(careers_url, str):
+        if not isinstance(name, str) or not name.strip():
+            continue
+        configured_icon = safe_company_icon_url(company.get("icon_url"))
+        if configured_icon:
+            icons[name] = configured_icon
+            continue
+        if not isinstance(careers_url, str):
             continue
         parsed = urlsplit(careers_url)
         host = parsed.hostname
