@@ -170,7 +170,13 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "web":
             from .web import run_server
 
-            run_server(store, args.host, args.port, open_browser=not args.no_open)
+            run_server(
+                store,
+                args.host,
+                args.port,
+                open_browser=not args.no_open,
+                companies_path=paths.companies,
+            )
         elif args.command == "history":
             print_json(store.get(args.job_id))
         elif args.command == "list-companies":

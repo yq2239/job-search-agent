@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from jobtracker.core import JobStore
-from jobtracker.web import create_server
+from jobtracker.web import company_icon_urls, create_server
 
 
 class WebTests(unittest.TestCase):
@@ -15,7 +15,11 @@ class WebTests(unittest.TestCase):
         root = Path(self.temp.name)
         jobs = root / "jobs.json"
         requirements = root / "requirements.json"
+        self.companies = root / "companies.json"
         jobs.write_text('{"schema_version": 1, "jobs": []}\n')
+        self.companies.write_text(json.dumps({"schema_version": 1, "companies": [{
+            "name": "Netflix", "careers_url": "https://jobs.netflix.com/search"
+        }]}))
         requirements.write_text(json.dumps({"hard_filters": {
             "allowed_locations": ["Mountain View, CA"],
             "exclude_if_minimum_education_is": ["phd"]},
@@ -26,7 +30,7 @@ class WebTests(unittest.TestCase):
             "sponsorship": "sponsors", "minimum_education": "bachelors", "fit_score": 90,
             "availability": "active", "last_verified_at": "2026-08-14T12:00:00+00:00",
             "verification_evidence": "official page contained title and Apply action"})
-        self.server = create_server(self.store, "127.0.0.1", 0)
+        self.server = create_server(self.store, "127.0.0.1", 0, self.companies)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         self.connection = http.client.HTTPConnection("127.0.0.1", self.server.server_address[1])
@@ -50,7 +54,7 @@ class WebTests(unittest.TestCase):
         response = self.connection.getresponse()
         body = response.read()
         self.assertEqual(response.status, 200)
-        self.assertIn("img-src 'self' data:", response.getheader("Content-Security-Policy"))
+        self.assertIn("img-src 'self' data: https:", response.getheader("Content-Security-Policy"))
         self.assertIn(b"Smart Job Tracker", body)
         self.assertIn(b'id="companyFilter"', body)
         self.assertIn(b"Referred", body)
@@ -72,6 +76,10 @@ class WebTests(unittest.TestCase):
         self.assertIn(b"company-name", body)
         self.assertIn(b"background-image:url", body)
         self.assertIn(b"function companyMark", body)
+        self.assertIn(b"function automaticCompanyIcon", body)
+        self.assertIn(b"function companyFallback", body)
+        self.assertIn(b"company-logo-auto", body)
+        self.assertIn(b"state.company_icons", body)
         self.assertIn(b"data:image/png;base64", body)
         self.assertIn(b'aria-label="Google DeepMind"', body)
         self.assertIn(b"logos['Google DeepMind']", body)
@@ -86,7 +94,20 @@ class WebTests(unittest.TestCase):
         self.assertIn(b"status-chip", body)
         self.assertIn(b".status-discovered{background:#e8f3ff", body)
         status, body = self.request("GET", "/api/jobs")
-        self.assertEqual(json.loads(body)["jobs"][0]["id"], self.job["id"])
+        payload = json.loads(body)
+        self.assertEqual(payload["jobs"][0]["id"], self.job["id"])
+        self.assertEqual(payload["company_icons"]["Netflix"], "https://jobs.netflix.com/favicon.ico")
+
+    def test_company_icons_use_safe_configured_careers_hosts(self):
+        self.assertEqual(
+            company_icon_urls(self.companies),
+            {"Netflix": "https://jobs.netflix.com/favicon.ico"},
+        )
+        self.companies.write_text(json.dumps({"companies": [
+            {"name": "Local", "careers_url": "https://127.0.0.1/jobs"},
+            {"name": "Insecure", "careers_url": "http://example.com/jobs"},
+        ]}))
+        self.assertEqual(company_icon_urls(self.companies), {})
 
     def test_status_and_note_mutations(self):
         path = f"/api/jobs/{self.job['id']}"

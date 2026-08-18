@@ -107,6 +107,18 @@ function statusOptions(job){
   return state.statuses.map(s=>`<option value="${esc(s)}" ${s===job.status?'selected':''}>${esc(labels[s]||s)}</option>`).join('');
 }
 const statusClass=status=>`status-${String(status||'unknown').replace(/[^a-z0-9_-]/gi,'-')}`;
+function companyFallback(company){
+  const initials=String(company||'').trim().split(/\s+/).map(part=>part[0]||'').join('').slice(0,2).toUpperCase()||'?';
+  return `<svg viewBox="0 0 24 24" role="img" aria-label="${esc(company)}"><rect width="24" height="24" rx="5" fill="#eef3f6"/><text x="12" y="15.5" text-anchor="middle" fill="#40596b" font-size="9" font-weight="800" font-family="system-ui,sans-serif">${esc(initials)}</text></svg>`;
+}
+function automaticCompanyIcon(company){
+  let iconUrl=state.company_icons?.[company]||'';
+  if(!iconUrl){
+    const job=state.jobs.find(item=>item.company===company);
+    try{const posting=new URL(job?.url||'');if(posting.protocol==='https:')iconUrl=`${posting.origin}/favicon.ico`}catch(error){}
+  }
+  return iconUrl?`<img class="company-logo-auto" alt="" src="${esc(iconUrl)}" data-company="${esc(company)}">`:companyFallback(company);
+}
 function companyMark(company){
   const logos={
     Google:`<svg viewBox="0 0 24 24" role="img"><path fill="#4285F4" d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></svg>`,
@@ -124,7 +136,7 @@ function companyMark(company){
   logos.Microsoft=`<svg viewBox="0 0 24 24" role="img" aria-label="Microsoft"><path fill="#f25022" d="M1 1h10v10H1z"/><path fill="#7fba00" d="M13 1h10v10H13z"/><path fill="#00a4ef" d="M1 13h10v10H1z"/><path fill="#ffb900" d="M13 13h10v10H13z"/></svg>`;
   logos.Reddit=`<svg viewBox="0 0 24 24" role="img" aria-label="Reddit"><circle cx="12" cy="12" r="12" fill="#ff4500"/><path fill="#fff" d="M19.5 11.8c0-1.05-.86-1.9-1.91-1.9-.52 0-.99.21-1.34.55-1.15-.78-2.68-1.28-4.37-1.35l.74-3.45 2.4.51a1.53 1.53 0 1 0 .18-.82l-2.86-.61a.43.43 0 0 0-.51.33l-.86 4.03c-1.75.05-3.33.55-4.51 1.35a1.9 1.9 0 1 0-2.1 3.08c-.03.2-.05.4-.05.6 0 2.78 3.44 5.03 7.69 5.03s7.69-2.25 7.69-5.03c0-.2-.02-.39-.05-.58.57-.33.96-.98.96-1.74zm-11.9 1.4a1.2 1.2 0 1 1 2.4 0 1.2 1.2 0 0 1-2.4 0zm7.55 3.33c-.91.91-2.65.98-3.15.98s-2.24-.07-3.15-.98a.43.43 0 0 1 .61-.61c.58.58 1.82.73 2.54.73s1.96-.15 2.54-.73a.43.43 0 1 1 .61.61zm-.35-2.13a1.2 1.2 0 1 1 0-2.4 1.2 1.2 0 0 1 0 2.4z"/></svg>`;
   logos.NVIDIA=`<svg viewBox="0 0 24 24" role="img" aria-label="NVIDIA"><path fill="#76b900" d="M8.67 8.06v-1.7c.55-.04 1.1-.07 1.66-.07 4.65 0 7.69 3.8 7.69 3.8s-3.28 4.56-6.8 4.56c-.88 0-1.72-.2-2.54-.61v-5.1c1.81.22 2.18 1.02 3.27 2.84l2.42-2.04s-1.77-2.32-4.75-2.32c-.32 0-.63.02-.95.06m0-5.63V4.4l.95-.06c6.47-.22 10.68 5.31 10.68 5.31s-4.84 5.89-9.87 5.89c-.58 0-1.16-.06-1.73-.16v1.08c.48.06.97.1 1.45.1 4.68 0 8.07-2.39 11.35-5.22.54.43 2.75 1.49 3.2 1.94-3.12 2.62-10.39 4.74-14.48 4.74-.51 0-1.01-.03-1.51-.08v2.27H6.75V8.22c-2.6.9-3.15 3.03-3.15 3.03s1.52 2.63 3.15 3.51v1.28C4.33 14.96 0 11.35 0 11.35s3.85-3.8 6.75-4.72V4.56c-3.21 1.04-5.29 2.96-6.75 4.21 0 0 3.49-4.85 8.67-5.82z"/></svg>`;
-  return logos[company]||`<svg viewBox="0 0 24 24" role="img"><path fill="#51687a" d="M4 7h16v13H4zM8 3h8v3H8zm-2 8h12v2H6z"/></svg>`;
+  return logos[company]||automaticCompanyIcon(company);
 }
 function noteList(job){
   const notes=[...(job.notes||[])].reverse();
@@ -188,6 +200,11 @@ $('statusMetrics').addEventListener('click',event=>{
   $('companyFilter').value=company;$('statusFilter').value='';$('search').value='';render();
   $('results').scrollIntoView({behavior:'smooth',block:'start'});toast(`Showing all ${company} jobs`);
 });
+document.addEventListener('error',event=>{
+  const image=event.target;
+  if(!(image instanceof HTMLImageElement)||!image.matches('.company-logo-auto'))return;
+  image.outerHTML=companyFallback(image.dataset.company||'');
+},true);
 ['search','companyFilter','statusFilter','sort'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));
 load().catch(error=>{$('results').innerHTML=`<div class="empty">${esc(error.message)}</div>`;toast(error.message,true)});
 </script></body></html>"""

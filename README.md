@@ -2,6 +2,10 @@
 
 Smart Job Tracker is a local-first job-search workspace that keeps its application code separate from every user's private career data.
 
+![Smart Job Tracker dashboard with fictional example data](docs/assets/smart-job-tracker-dashboard.png)
+
+_Dashboard preview using fictional demo data._
+
 The repository contains only reusable code, fictional examples, tests, and documentation. Real résumés, career profiles, eligibility requirements, company notes, job records, application decisions, and referrals live in a private state directory outside the Git repository.
 
 ```text
@@ -415,7 +419,11 @@ List configured companies:
 python3 -m jobtracker list-companies
 ```
 
-New companies receive a generic dashboard icon unless a public logo is added to `jobtracker/web_ui.py`.
+The dashboard automatically loads a company's real favicon from the HTTPS host in
+`careers_url`. If a company is not configured yet, it tries the official posting
+host; if neither icon is available, it falls back to generated initials. For the
+best automatic result, use a company-controlled careers URL rather than a generic
+ATS landing page.
 
 ## Working with an AI agent
 

@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+import ipaddress
 import json
 import threading
 import webbrowser
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-from .core import JobStore, VALID_STATUSES
+from .core import JobStore, VALID_STATUSES, load_json
 from .web_ui import DASHBOARD_HTML
 
 MAX_BODY_BYTES = 8192
@@ -17,7 +19,37 @@ def json_bytes(value: object) -> bytes:
     return json.dumps(value, ensure_ascii=False).encode("utf-8")
 
 
-def make_handler(store: JobStore) -> type[BaseHTTPRequestHandler]:
+def company_icon_urls(companies_path: Path | None) -> dict[str, str]:
+    """Build same-purpose favicon URLs from configured public careers sites."""
+    if companies_path is None:
+        return {}
+    try:
+        companies = load_json(companies_path).get("companies", [])
+    except (OSError, json.JSONDecodeError):
+        return {}
+    icons: dict[str, str] = {}
+    for company in companies if isinstance(companies, list) else []:
+        if not isinstance(company, dict):
+            continue
+        name = company.get("name")
+        careers_url = company.get("careers_url")
+        if not isinstance(name, str) or not name.strip() or not isinstance(careers_url, str):
+            continue
+        parsed = urlsplit(careers_url)
+        host = parsed.hostname
+        if parsed.scheme != "https" or not host or "." not in host:
+            continue
+        try:
+            ipaddress.ip_address(host)
+        except ValueError:
+            pass
+        else:
+            continue
+        icons[name] = f"https://{host}/favicon.ico"
+    return icons
+
+
+def make_handler(store: JobStore, companies_path: Path | None = None) -> type[BaseHTTPRequestHandler]:
     class DashboardHandler(BaseHTTPRequestHandler):
         server_version = "JobTracker/1.0"
 
@@ -28,7 +60,7 @@ def make_handler(store: JobStore) -> type[BaseHTTPRequestHandler]:
             self.send_header("Cache-Control", "no-store")
             self.send_header(
                 "Content-Security-Policy",
-                "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'",
+                "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'",
             )
             super().end_headers()
 
@@ -62,7 +94,14 @@ def make_handler(store: JobStore) -> type[BaseHTTPRequestHandler]:
                 return
             if path == "/api/jobs":
                 jobs = sorted(store.list(), key=lambda job: int(job.get("fit_score", 0)), reverse=True)
-                self.reply_json(HTTPStatus.OK, {"jobs": jobs, "statuses": sorted(VALID_STATUSES)})
+                self.reply_json(
+                    HTTPStatus.OK,
+                    {
+                        "jobs": jobs,
+                        "statuses": sorted(VALID_STATUSES),
+                        "company_icons": company_icon_urls(companies_path),
+                    },
+                )
                 return
             self.reply_json(HTTPStatus.NOT_FOUND, {"error": "not found"})
 
@@ -99,14 +138,25 @@ def make_handler(store: JobStore) -> type[BaseHTTPRequestHandler]:
     return DashboardHandler
 
 
-def create_server(store: JobStore, host: str, port: int) -> ThreadingHTTPServer:
+def create_server(
+    store: JobStore,
+    host: str,
+    port: int,
+    companies_path: Path | None = None,
+) -> ThreadingHTTPServer:
     if not 0 <= port <= 65535:
         raise ValueError("port must be between 0 and 65535")
-    return ThreadingHTTPServer((host, port), make_handler(store))
+    return ThreadingHTTPServer((host, port), make_handler(store, companies_path))
 
 
-def run_server(store: JobStore, host: str, port: int, open_browser: bool = True) -> None:
-    server = create_server(store, host, port)
+def run_server(
+    store: JobStore,
+    host: str,
+    port: int,
+    open_browser: bool = True,
+    companies_path: Path | None = None,
+) -> None:
+    server = create_server(store, host, port, companies_path)
     actual_port = server.server_address[1]
     url = f"http://{host}:{actual_port}/"
     print(f"Smart Job Tracker: {url}")
