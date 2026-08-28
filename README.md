@@ -26,6 +26,7 @@ This design lets multiple people use the same public code without sharing person
 - Stores a structured career profile and target-role preferences.
 - Applies hard location, sponsorship, and education requirements.
 - Verifies that an official posting is live before saving it.
+- Stores the employer's posting date when the official source exposes one.
 - Creates deterministic job IDs and prevents duplicate records.
 - Preserves status, note, and verification history.
 - Provides a private dashboard for filtering and reviewing jobs.
@@ -473,6 +474,8 @@ python3 -m jobtracker add-job \
   --sponsorship unknown \
   --min-education bachelors \
   --fit-score 88 \
+  --posted-at 2026-08-18 \
+  --posting-date-evidence "Official JobPosting datePosted metadata." \
   --evidence "Official posting lists Seattle and requires a bachelor's degree plus five years of product analytics, SQL, Python, and experimentation. Sponsorship is not stated."
 ```
 
@@ -488,6 +491,8 @@ Use the exact title from the official page. The command verifies that the postin
 | `--sponsorship` | `sponsors`, `does_not_sponsor`, or `unknown` | `unknown` |
 | `--min-education` | Lowest required degree or `unknown` | `bachelors` |
 | `--fit-score` | Human/agent score from 0–100 | `88` |
+| `--posted-at` | Employer posting date, when officially available | `2026-08-18` |
+| `--posting-date-evidence` | Official source of the posting date | `Official JobPosting datePosted metadata` |
 | `--evidence` | Verified facts and uncertainty | Quoted sentence |
 
 Valid education values:
@@ -522,6 +527,7 @@ The dashboard provides:
 - Company and status filters.
 - Direct official-posting links.
 - Fit scores and eligibility reasons.
+- A **NEW POSTING** badge for roles posted by the employer within the last eight business days.
 - Status changes with append-only history.
 - Private append-only job notes.
 
@@ -595,6 +601,7 @@ python3 -m jobtracker [--state-dir PATH] list-companies
 python3 -m jobtracker [--state-dir PATH] add-job --help
 python3 -m jobtracker [--state-dir PATH] recommendations [--minimum-score N]
 python3 -m jobtracker [--state-dir PATH] set-status JOB-ID STATUS [--note TEXT]
+python3 -m jobtracker [--state-dir PATH] set-posting-date JOB-ID (--posted-at YYYY-MM-DD | --unknown) --evidence TEXT
 python3 -m jobtracker [--state-dir PATH] add-note JOB-ID --note TEXT
 python3 -m jobtracker [--state-dir PATH] history JOB-ID
 python3 -m jobtracker [--state-dir PATH] verify-jobs

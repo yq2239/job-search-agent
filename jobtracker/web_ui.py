@@ -14,9 +14,11 @@ h1{font-size:clamp(28px,5vw,44px);line-height:1.05;margin:0;color:var(--navy);le
 .metric{background:white;border:1px solid var(--line);border-radius:14px;padding:15px 17px;box-shadow:var(--shadow)}
 .metric-review{grid-column:span 2;padding:17px 18px}
 .metric-discovered{--company-bg:#f2f8ff;--company-border:#c9e1f5;--company-count:#dceeff;--company-count-text:#1769a8}
-.metric-interested,.metric-applied,.metric-referred{--company-bg:#f0faf7;--company-border:#c9e7de;--company-count:#dcefe9;--company-count-text:#066556}
+.metric-interested{--company-bg:#f0faf7;--company-border:#c9e7de;--company-count:#dcefe9;--company-count-text:#2d7a68}
+.metric-applied{--company-bg:#eaf7f3;--company-border:#b8ded3;--company-count:#d4ece5;--company-count-text:#066556}
+.metric-referred{--company-bg:#e2f2ed;--company-border:#99cbbd;--company-count:#c5e3da;--company-count-text:#034c41}
 .metric b{display:block;font-size:25px;color:var(--navy)}
-.metric #review{color:#8d5200}.metric #discovered{color:#1769a8}.metric #interested,.metric #applied,.metric #referred{color:#066556}
+.metric #review{color:#8d5200}.metric #discovered{color:#1769a8}.metric #interested{color:#4b9a84}.metric #applied{color:#066556}.metric #referred{color:#034c41}
 .metric span{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
 .metric-companies{display:grid;gap:5px;margin-top:10px}
 .metric-company{display:flex;align-items:center;gap:5px;width:100%;min-width:0;border:1px solid var(--company-border,#dbe6ed);background:var(--company-bg,#f7fafb);color:var(--navy);border-radius:9px;padding:4px 6px 4px 5px;cursor:pointer;font:inherit;font-size:11px;font-weight:750;transition:.15s ease}
@@ -39,9 +41,9 @@ h1{font-size:clamp(28px,5vw,44px);line-height:1.05;margin:0;color:var(--navy);le
 .control:focus{border-color:var(--blue);box-shadow:0 0 0 3px #dceaff}
 .results{display:grid;gap:14px}.empty{background:white;border:1px solid var(--line);border-radius:16px;padding:40px;text-align:center;color:var(--muted)}
 .card{background:white;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}.card-main{padding:20px 22px}.job-head{display:flex;gap:16px;justify-content:space-between;align-items:flex-start}
-.company-line{display:flex;align-items:center;gap:10px;margin-bottom:7px}.company-mark{width:38px;height:38px;display:grid;place-items:center;border-radius:10px;background:white;border:1px solid #dce5eb;box-shadow:0 3px 10px rgba(23,54,80,.07);overflow:hidden}.company-mark svg,.company-mark img{display:block;width:24px;height:24px;object-fit:contain}.company-mark.deepmind svg{width:29px;height:29px}.company-name{font-size:18px;line-height:1.1;color:var(--navy);font-weight:850;letter-spacing:-.01em}.job-id{font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.04em;margin-top:3px}.role-line{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:3px 0 7px}.job-title{font-size:21px;line-height:1.25;color:var(--navy);margin:0}.role-line .status-chip{flex:0 0 auto}
+.company-line{display:flex;align-items:center;gap:10px;margin-bottom:7px}.company-mark{width:38px;height:38px;display:grid;place-items:center;border-radius:10px;background:white;border:1px solid #dce5eb;box-shadow:0 3px 10px rgba(23,54,80,.07);overflow:hidden}.company-mark svg,.company-mark img{display:block;width:24px;height:24px;object-fit:contain}.company-mark.deepmind svg{width:29px;height:29px}.company-name{font-size:18px;line-height:1.1;color:var(--navy);font-weight:850;letter-spacing:-.01em}.job-id{font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.04em;margin-top:3px}.role-line{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:3px 0 7px}.job-title{font-size:21px;line-height:1.25;color:var(--navy);margin:0}.role-line .status-chip{flex:0 0 auto}.recent-chip{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:999px;border:1px solid #7c9cff;background:linear-gradient(135deg,#eef2ff,#e0e7ff);color:#4338ca;font-size:11px;font-weight:900;letter-spacing:.045em;text-transform:uppercase;box-shadow:0 2px 8px rgba(67,56,202,.15)}.recent-chip::before{content:'';width:7px;height:7px;border-radius:50%;background:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.15)}
 .score{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:#e9f2ff;color:var(--blue);font-size:18px;font-weight:800;flex:0 0 auto}.score small{display:block;font-size:8px;line-height:1;text-align:center}
-.chips{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0}.chip{padding:4px 8px;border-radius:999px;background:var(--paper);color:#51687a;font-size:12px;border:1px solid #e3eaef}.status-chip{font-size:13px;font-weight:850;letter-spacing:.01em;padding:6px 11px}.status-recommended,.status-interested,.status-applied{background:#e3f4ef;color:#066556;border-color:#b8ded3}.status-discovered{background:#e8f3ff;color:#1769a8;border-color:#b9d8f2}.status-manual_review{background:#fff3dc;color:#8d5200;border-color:#f0d29b}.status-skipped,.status-rejected,.status-closed,.status-withdrawn{background:#fde8e8;color:#a12a2a;border-color:#f0bcbc}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0}.chip{padding:4px 8px;border-radius:999px;background:var(--paper);color:#51687a;font-size:12px;border:1px solid #e3eaef}.status-chip{font-size:13px;font-weight:850;letter-spacing:.01em;padding:6px 11px}.status-interested{background:#e9f7f2;color:#2d7a68;border-color:#c5e7dc}.status-applied{background:#e3f4ef;color:#066556;border-color:#b8ded3}.status-recommended{background:#075e50;color:#fff;border-color:#034c41}.status-discovered{background:#e8f3ff;color:#1769a8;border-color:#b9d8f2}.status-manual_review{background:#fff3dc;color:#8d5200;border-color:#f0d29b}.status-skipped,.status-rejected,.status-closed,.status-withdrawn{background:#fde8e8;color:#a12a2a;border-color:#f0bcbc}
 .evidence{margin:12px 0 0;color:#354b5c}.actions{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-top:17px}.btn{border:0;border-radius:10px;padding:9px 12px;font-weight:750;cursor:pointer}.btn.primary{background:var(--blue);color:white}.btn.secondary{background:#e9eff3;color:var(--navy)}.btn:disabled{opacity:.55;cursor:wait}
 .posting{color:var(--blue);font-weight:750;text-decoration:none;margin-right:auto}.posting:hover{text-decoration:underline}
 .editor{display:grid;grid-template-columns:170px minmax(180px,1fr) auto;gap:8px;width:100%;margin-top:8px}.editor input,.editor select{min-width:0}.notes{border-top:1px solid var(--line);background:#fafcfd;padding:16px 22px}.notes summary{cursor:pointer;color:var(--navy);font-weight:780}
@@ -73,6 +75,19 @@ const labels={manual_review:'Pending review',discovered:'Discovered',recommended
 const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const when=value=>value?new Date(value).toLocaleString():'Unknown time';
+function isWithinBusinessDays(value,limit=8,now=new Date()){
+  if(!value)return false;
+  const dateOnly=String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const added=dateOnly?new Date(Number(dateOnly[1]),Number(dateOnly[2])-1,Number(dateOnly[3])):new Date(value);
+  if(Number.isNaN(added.getTime()))return false;
+  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const addedDay=new Date(added.getFullYear(),added.getMonth(),added.getDate());
+  const tomorrow=new Date(today);tomorrow.setDate(tomorrow.getDate()+1);
+  if(addedDay>=tomorrow)return false;
+  const cutoff=new Date(today);let included=0;
+  while(included<limit){const day=cutoff.getDay();if(day!==0&&day!==6)included+=1;if(included<limit)cutoff.setDate(cutoff.getDate()-1)}
+  return addedDay>=cutoff;
+}
 function toast(message,error=false){const el=$('toast');el.textContent=message;el.className='toast'+(error?' error':'');el.style.display='block';setTimeout(()=>el.style.display='none',2600)}
 async function load(){
   const response=await fetch('/api/jobs');
@@ -139,6 +154,7 @@ function companyMark(company){
   logos.TikTok=`<svg fill="#111" role="img" aria-label="TikTok" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>`;
   logos.ByteDance=`<svg fill="#3C8CFF" role="img" aria-label="ByteDance" viewBox="0 0 24 24"><path d="M19.8772 1.4685 24 2.5326v18.9426l-4.1228 1.0563V1.4685zm-13.3481 9.428 4.115 1.0641v8.9786l-4.115 1.0642v-11.107zM0 2.572l4.115 1.0642v16.7354L0 21.428V2.572zm17.4553 5.6205v11.107l-4.1228-1.0642V9.2568l4.1228-1.0642z"/></svg>`;
   logos.Adobe=`<svg fill="#EB1000" role="img" aria-label="Adobe" viewBox="0 0 24 24"><path d="M15.1 0H24v24L15.1 0zM8.9 0H0v24L8.9 0zM12 7.7 17.6 22h-3.8l-1.6-4.1H8.1L12 7.7z"/></svg>`;
+  logos.Apple=`<svg fill="#111" role="img" aria-label="Apple" viewBox="0 0 24 24"><path d="M23.997 17.093a12.312 12.312 0 0 1-1.059 2.324c-.576.984-1.047 1.664-1.412 2.04-.565.614-1.17.928-1.814.946-.463 0-1.02-.132-1.67-.397-.653-.264-1.253-.396-1.803-.396-.577 0-1.194.132-1.855.396-.662.265-1.196.405-1.6.419-.618.026-1.236-.296-1.853-.966-.394-.434-.886-1.138-1.475-2.11-.63-1.04-1.147-2.246-1.55-3.623-.432-1.487-.648-2.927-.648-4.324 0-1.6.346-2.98 1.04-4.14a6.12 6.12 0 0 1 2.199-2.2 5.91 5.91 0 0 1 2.975-.83c.49 0 1.13.152 1.924.456.79.305 1.298.457 1.522.457.168 0 .733-.178 1.692-.533.906-.326 1.67-.46 2.298-.408 1.7.137 2.974.808 3.82 2.016-1.52.921-2.273 2.211-2.258 3.865.014 1.288.482 2.36 1.404 3.215.418.4.889.71 1.413.93a6.48 6.48 0 0 1-.376 1.09zM22.04.48c0 1.01-.369 1.953-1.104 2.825-.887 1.037-1.96 1.636-3.124 1.541a3.14 3.14 0 0 1-.023-.383c0-.97.422-2.007 1.17-2.855.374-.43.85-.787 1.427-1.072.576-.28 1.12-.435 1.63-.462.015.136.023.272.023.406z"/></svg>`;
   return logos[company]||automaticCompanyIcon(company);
 }
 function noteList(job){
@@ -152,9 +168,10 @@ function historyList(job){
 function jobCard(job){
   const reasons=(job.eligibility_reasons||[]).join('; ');
   const mark=companyMark(job.company);
+  const recent=isWithinBusinessDays(job.posted_at)?'<span class="recent-chip" title="Posted by the employer within the last 8 business days">NEW POSTING</span>':'';
   return `<article class="card" data-id="${esc(job.id)}"><div class="card-main">
-    <div class="job-head"><div><div class="company-line"><span class="company-mark ${job.company==='Google DeepMind'?'deepmind':''}" aria-hidden="true">${mark}</span><div><div class="company-name">${esc(job.company)}</div><div class="job-id">${esc(job.id)}</div></div></div><div class="role-line"><h2 class="job-title">${esc(job.title)}</h2><span class="status-chip ${statusClass(job.status)}">${esc(labels[job.status]||job.status)}</span></div></div><div class="score"><span>${esc(job.fit_score)}<small>FIT</small></span></div></div>
-    <div class="chips"><span class="chip">${esc(job.location)}</span><span class="chip">${esc(job.minimum_education)} minimum</span><span class="chip">${esc(job.availability)} · verified ${esc(when(job.last_verified_at))}</span></div>
+    <div class="job-head"><div><div class="company-line"><span class="company-mark ${job.company==='Google DeepMind'?'deepmind':''}" aria-hidden="true">${mark}</span><div><div class="company-name">${esc(job.company)}</div><div class="job-id">${esc(job.id)}</div></div></div><div class="role-line"><h2 class="job-title">${esc(job.title)}</h2><span class="status-chip ${statusClass(job.status)}">${esc(labels[job.status]||job.status)}</span>${recent}</div></div><div class="score"><span>${esc(job.fit_score)}<small>FIT</small></span></div></div>
+    <div class="chips"><span class="chip">${esc(job.location)}</span><span class="chip">${esc(job.minimum_education)} minimum</span><span class="chip" title="${esc(job.posting_date_evidence||'')}">${job.posted_at?`posted ${esc(job.posted_at)}`:'posting date unavailable'}</span><span class="chip">${esc(job.availability)} · verified ${esc(when(job.last_verified_at))}</span></div>
     <p class="evidence">${esc(job.evidence)}</p>
     ${reasons?`<p class="lede"><strong>Review:</strong> ${esc(reasons)}</p>`:''}
     <div class="actions"><a class="posting" href="${esc(job.url)}" target="_blank" rel="noopener noreferrer">Open official posting ↗</a></div>

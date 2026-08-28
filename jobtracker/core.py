@@ -8,7 +8,7 @@ import tempfile
 import threading
 import uuid
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -36,6 +36,18 @@ def utc_now() -> str:
 
 def normalize_text(value: str) -> str:
     return re.sub(r"\s+", " ", value.strip()).casefold()
+
+
+def normalize_posted_at(value: str | None) -> str | None:
+    if value is None:
+        return None
+    try:
+        posted = date.fromisoformat(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("posted_at must use YYYY-MM-DD format") from exc
+    if posted > datetime.now(timezone.utc).date():
+        raise ValueError("posted_at cannot be in the future")
+    return posted.isoformat()
 
 
 def canonicalize_url(url: str) -> str:
@@ -138,6 +150,8 @@ class JobStore:
         if candidate.get("availability") != "active" or not candidate.get("last_verified_at"):
             raise ValueError("job must pass a live official-page verification before it can be added")
         candidate["url"] = canonicalize_url(candidate["url"])
+        if "posted_at" in candidate:
+            candidate["posted_at"] = normalize_posted_at(candidate.get("posted_at"))
         candidate_id = make_job_id(
             candidate["company"], candidate["title"], candidate["location"], candidate["url"]
         )
@@ -164,6 +178,11 @@ class JobStore:
                         "verification_evidence": candidate.get("verification_evidence", ""),
                     }
                 )
+                if "posted_at" in candidate:
+                    existing["posted_at"] = candidate["posted_at"]
+                    existing["posting_date_evidence"] = candidate.get(
+                        "posting_date_evidence", ""
+                    )
                 existing.setdefault("verification_history", []).append(
                     {
                         "at": candidate["last_verified_at"],
@@ -176,6 +195,11 @@ class JobStore:
 
         eligibility, reasons = evaluate_job(candidate, self._requirements())
         now = utc_now()
+        candidate.setdefault("posted_at", None)
+        candidate.setdefault(
+            "posting_date_evidence",
+            "Exact employer posting date was not available from the official posting.",
+        )
         initial_status = "manual_review" if eligibility == "manual_review" else "discovered"
         candidate.update(
             {
@@ -226,6 +250,24 @@ class JobStore:
                     job.setdefault("history", []).append(
                         {"at": checked_at, "status": "closed", "note": evidence}
                     )
+                save_json(self.jobs_path, data)
+                return deepcopy(job)
+        raise KeyError(job_id)
+
+    def set_posting_date(
+        self, job_id: str, posted_at: str | None, evidence: str
+    ) -> dict[str, Any]:
+        evidence = evidence.strip()
+        if not evidence:
+            raise ValueError("posting date evidence cannot be empty")
+        normalized = normalize_posted_at(posted_at)
+        with _MUTATION_LOCK:
+            data = self._data()
+            for job in data["jobs"]:
+                if job["id"] != job_id:
+                    continue
+                job["posted_at"] = normalized
+                job["posting_date_evidence"] = evidence
                 save_json(self.jobs_path, data)
                 return deepcopy(job)
         raise KeyError(job_id)

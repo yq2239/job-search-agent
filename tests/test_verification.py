@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from jobtracker.verification import (
+    classify_apple_job_html,
     classify_greenhouse_job_json,
     classify_official_posting_html,
     classify_workday_job_json,
@@ -46,6 +47,36 @@ class VerificationTests(unittest.TestCase):
         payload = '''{"jobPostingInfo":{"title":"Senior AI Engineer","posted":true,
         "canApply":false,"jobReqId":"JR123","externalUrl":"https://example"}}'''
         self.assertEqual(classify_workday_job_json(payload, "Senior AI Engineer")[0], "closed")
+
+    def test_apple_structured_page_requires_exact_live_posting(self):
+        posting = {
+            "loaderData": {
+                "jobDetails": {
+                    "jobsData": {
+                        "jobNumber": "200123456-0836",
+                        "postingTitle": "ML Engineer - Agents",
+                        "postingDate": "Aug 27, 2026",
+                        "locations": [{"name": "Cupertino"}],
+                    }
+                }
+            }
+        }
+        page = (
+            "<script>window.__staticRouterHydrationData = JSON.parse("
+            + json.dumps(json.dumps(posting))
+            + ");</script>"
+        )
+        self.assertEqual(classify_apple_job_html(page, "ML Engineer - Agents")[0], "active")
+        self.assertEqual(classify_apple_job_html(page, "Different Role")[0], "unknown")
+
+    def test_apple_search_redirect_is_not_treated_as_live(self):
+        search_page = {"loaderData": {"root": {"locale": "en-us"}}}
+        page = (
+            "<script>window.__staticRouterHydrationData = JSON.parse("
+            + json.dumps(json.dumps(search_page))
+            + ");</script>"
+        )
+        self.assertEqual(classify_apple_job_html(page, "Closed Role")[0], "unknown")
 
     def test_active_page_requires_expected_title_and_apply(self):
         page = "<main><h1>Research Engineer, DeepMind</h1><button>Apply</button></main>"
@@ -110,6 +141,52 @@ class VerificationTests(unittest.TestCase):
                 "https://www.tesla.com/careers/search/job/role-261090",
                 "Expected Role",
                 "261090",
+                "Palo Alto, CA",
+            )
+            self.assertEqual(result.availability, "unknown")
+
+    def test_fresh_tesla_careers_page_snapshot_verifies_official_url(self):
+        with tempfile.TemporaryDirectory() as directory:
+            snapshot = Path(directory) / "tesla-pages.json"
+            snapshot.write_text(json.dumps({
+                "source_url": "https://www.tesla.com/careers/search/",
+                "captured_at": datetime.now(timezone.utc).isoformat(),
+                "jobs": [{
+                    "id": "254824",
+                    "title": "Data Scientist, Battery Manufacturing Development, Optimus",
+                    "location": "Palo Alto, California",
+                    "apply": True,
+                    "url": "https://www.tesla.com/careers/search/job/data-scientist-battery-manufacturing-development-optimus-254824",
+                }],
+            }))
+            result = verify_tesla_snapshot(
+                snapshot,
+                "https://www.tesla.com/careers/search/job/data-scientist-battery-manufacturing-development-optimus-254824",
+                "Data Scientist, Battery Manufacturing Development, Optimus",
+                "254824",
+                "Palo Alto, CA",
+            )
+            self.assertEqual(result.availability, "active")
+
+    def test_tesla_careers_page_snapshot_rejects_mismatched_url(self):
+        with tempfile.TemporaryDirectory() as directory:
+            snapshot = Path(directory) / "tesla-pages.json"
+            snapshot.write_text(json.dumps({
+                "source_url": "https://www.tesla.com/careers/search/",
+                "captured_at": datetime.now(timezone.utc).isoformat(),
+                "jobs": [{
+                    "id": "254824",
+                    "title": "Data Scientist",
+                    "location": "Palo Alto, California",
+                    "apply": True,
+                    "url": "https://example.com/job/254824",
+                }],
+            }))
+            result = verify_tesla_snapshot(
+                snapshot,
+                "https://www.tesla.com/careers/search/job/data-scientist-254824",
+                "Data Scientist",
+                "254824",
                 "Palo Alto, CA",
             )
             self.assertEqual(result.availability, "unknown")

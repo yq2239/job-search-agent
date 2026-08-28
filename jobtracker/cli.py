@@ -5,7 +5,7 @@ import json
 import sys
 from pathlib import Path
 
-from .core import JobStore, VALID_AVAILABILITY, VALID_STATUSES, load_json
+from .core import JobStore, VALID_AVAILABILITY, VALID_STATUSES, load_json, normalize_posted_at
 from .paths import (
     EXAMPLE_STATE_ROOT,
     StatePaths,
@@ -55,6 +55,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     add.add_argument("--fit-score", type=int, choices=range(0, 101), default=0, metavar="0..100")
     add.add_argument("--evidence", default="")
+    add.add_argument("--posted-at", help="employer posting date in YYYY-MM-DD format")
+    add.add_argument("--posting-date-evidence", default="")
     add.add_argument(
         "--verification-snapshot",
         type=Path,
@@ -68,6 +70,15 @@ def build_parser() -> argparse.ArgumentParser:
     status.add_argument("job_id")
     status.add_argument("status", choices=sorted(VALID_STATUSES))
     status.add_argument("--note", default="")
+
+    posting_date = sub.add_parser(
+        "set-posting-date", help="record an employer posting date or an explicit unknown"
+    )
+    posting_date.add_argument("job_id")
+    posting_date_value = posting_date.add_mutually_exclusive_group(required=True)
+    posting_date_value.add_argument("--posted-at", help="employer posting date in YYYY-MM-DD format")
+    posting_date_value.add_argument("--unknown", action="store_true")
+    posting_date.add_argument("--evidence", required=True)
 
     note = sub.add_parser("add-note", help="append a note to one job")
     note.add_argument("job_id")
@@ -121,6 +132,15 @@ def validate(paths: StatePaths | None = None) -> list[str]:
             errors.append(f"{prefix}: last_verified_at is required")
         if not job.get("verification_evidence"):
             errors.append(f"{prefix}: verification_evidence is required")
+        if "posted_at" not in job:
+            errors.append(f"{prefix}: posted_at is required (use null when unavailable)")
+        elif job.get("posted_at"):
+            try:
+                normalize_posted_at(job["posted_at"])
+            except ValueError as exc:
+                errors.append(f"{prefix}: {exc}")
+        if not job.get("posting_date_evidence"):
+            errors.append(f"{prefix}: posting_date_evidence is required")
         notes = job.get("notes", [])
         if not isinstance(notes, list):
             errors.append(f"{prefix}: notes must be a list")
@@ -146,6 +166,8 @@ def main(argv: list[str] | None = None) -> int:
 
         store = JobStore(paths.jobs, paths.requirements)
         if args.command == "add-job":
+            if args.posted_at and not args.posting_date_evidence.strip():
+                raise ValueError("--posting-date-evidence is required with --posted-at")
             verification = (
                 verify_tesla_snapshot(
                     args.verification_snapshot,
@@ -170,6 +192,14 @@ def main(argv: list[str] | None = None) -> int:
                     "minimum_education": args.min_education,
                     "fit_score": args.fit_score,
                     "evidence": args.evidence,
+                    **(
+                        {
+                            "posted_at": args.posted_at,
+                            "posting_date_evidence": args.posting_date_evidence,
+                        }
+                        if args.posted_at
+                        else {}
+                    ),
                     **verification.as_dict(),
                 }
             )
@@ -180,6 +210,14 @@ def main(argv: list[str] | None = None) -> int:
             print_json(store.recommendations(minimum))
         elif args.command == "set-status":
             print_json(store.set_status(args.job_id, args.status, args.note))
+        elif args.command == "set-posting-date":
+            print_json(
+                store.set_posting_date(
+                    args.job_id,
+                    None if args.unknown else args.posted_at,
+                    args.evidence,
+                )
+            )
         elif args.command == "add-note":
             print_json(store.add_note(args.job_id, args.note))
         elif args.command == "web":

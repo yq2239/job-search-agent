@@ -20,6 +20,7 @@ GREENHOUSE_WRAPPER_BOARDS = {
     "careers.withwaymo.com": "waymo",
 }
 TESLA_CAREERS_STATE_URL = "https://www.tesla.com/cua-api/apps/careers/state"
+TESLA_CAREERS_SEARCH_URL = "https://www.tesla.com/careers/search/"
 TESLA_SNAPSHOT_MAX_AGE = timedelta(hours=24)
 
 
@@ -125,6 +126,34 @@ def classify_workday_job_json(payload: str, expected_title: str) -> tuple[str, s
     return "active", "official Workday API returned the expected live, applyable posting"
 
 
+def classify_apple_job_html(page_html: str, expected_title: str) -> tuple[str, str]:
+    """Validate a live Apple role from the structured router payload in its job page."""
+    match = re.search(
+        r'window\.__staticRouterHydrationData\s*=\s*JSON\.parse\('
+        r'("(?:\\.|[^"\\])*")\);',
+        page_html,
+        flags=re.DOTALL,
+    )
+    if not match:
+        return "unknown", "official Apple page lacked structured job data"
+    try:
+        router_data = json.loads(json.loads(match.group(1)))
+        posting = router_data["loaderData"]["jobDetails"]["jobsData"]
+    except (json.JSONDecodeError, KeyError, TypeError):
+        return "unknown", "official Apple page did not contain a live job record"
+    if str(posting.get("postingTitle", "")).casefold() != expected_title.casefold():
+        return "unknown", "official Apple posting did not match the expected title"
+    locations = posting.get("locations")
+    if (
+        not posting.get("jobNumber")
+        or not posting.get("postingDate")
+        or not isinstance(locations, list)
+        or not locations
+    ):
+        return "unknown", "official Apple job record lacked live posting metadata"
+    return "active", "official Apple structured page returned the expected live posting"
+
+
 def _normalized_location(value: str) -> str:
     return re.sub(r"\s+", " ", value.strip().casefold()).replace(", california", ", ca")
 
@@ -155,14 +184,26 @@ def verify_tesla_snapshot(
     age = datetime.now(timezone.utc) - captured_at.astimezone(timezone.utc)
     if age < timedelta(minutes=-5) or age > TESLA_SNAPSHOT_MAX_AGE:
         return VerificationResult("unknown", checked_at, "Tesla verification snapshot was not captured within the last 24 hours")
-    if snapshot.get("source_url") != TESLA_CAREERS_STATE_URL:
-        return VerificationResult("unknown", checked_at, "Tesla verification snapshot did not identify the official careers feed")
+    snapshot_source = snapshot.get("source_url")
+    if snapshot_source not in {TESLA_CAREERS_STATE_URL, TESLA_CAREERS_SEARCH_URL}:
+        return VerificationResult("unknown", checked_at, "Tesla verification snapshot did not identify an official careers source")
     jobs = snapshot.get("jobs")
     if not isinstance(jobs, list):
         return VerificationResult("unknown", checked_at, "Tesla verification snapshot did not contain a job list")
     for job in jobs:
         if not isinstance(job, dict) or str(job.get("id", "")) != posting_id:
             continue
+        if snapshot_source == TESLA_CAREERS_SEARCH_URL:
+            snapshot_posting_url = str(job.get("url", ""))
+            snapshot_parts = urlsplit(snapshot_posting_url)
+            snapshot_match = re.search(r"(?:-|/)(\d{5,})/?$", snapshot_parts.path)
+            if (
+                snapshot_parts.scheme != "https"
+                or snapshot_parts.netloc.casefold() != "www.tesla.com"
+                or not snapshot_match
+                or snapshot_match.group(1) != posting_id
+            ):
+                return VerificationResult("unknown", checked_at, "Tesla careers-page snapshot lacked a matching official posting URL")
         if str(job.get("title", "")).casefold() != expected_title.casefold():
             return VerificationResult("unknown", checked_at, "official Tesla snapshot title did not match the expected title")
         if _normalized_location(str(job.get("location", ""))) != _normalized_location(expected_location):
@@ -213,6 +254,8 @@ def verify_job_url(url: str, expected_title: str, timeout: float = 35.0) -> Veri
             availability, evidence = classify_greenhouse_job_json(page_html, expected_title)
         elif workday_url:
             availability, evidence = classify_workday_job_json(page_html, expected_title)
+        elif urlsplit(url).hostname == "jobs.apple.com":
+            availability, evidence = classify_apple_job_html(page_html, expected_title)
         else:
             availability, evidence = classify_official_posting_html(page_html, expected_title)
         return VerificationResult(availability, checked_at, evidence)

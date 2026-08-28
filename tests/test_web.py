@@ -29,7 +29,8 @@ class WebTests(unittest.TestCase):
             "location": "Mountain View, CA", "url": "https://example.com/jobs/1",
             "sponsorship": "sponsors", "minimum_education": "bachelors", "fit_score": 90,
             "availability": "active", "last_verified_at": "2026-08-14T12:00:00+00:00",
-            "verification_evidence": "official page contained title and Apply action"})
+            "verification_evidence": "official page contained title and Apply action",
+            "posted_at": "2026-08-12", "posting_date_evidence": "official datePosted"})
         self.server = create_server(self.store, "127.0.0.1", 0, self.companies)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
@@ -96,9 +97,18 @@ class WebTests(unittest.TestCase):
         self.assertIn(b"logos.Adobe", body)
         self.assertIn(b'aria-label="Adobe"', body)
         self.assertIn(b"role-line", body)
+        self.assertIn(b"function isWithinBusinessDays", body)
+        self.assertIn(b"job.posted_at", body)
+        self.assertIn(b"NEW POSTING", body)
+        self.assertIn(b"Posted by the employer within the last 8 business days", body)
+        self.assertIn(b"job.posting_date_evidence", body)
+        self.assertIn(b"String(value).match", body)
+        self.assertIn(b"recent-chip", body)
         self.assertIn(b"Status history", body)
         self.assertIn(b"status-chip", body)
         self.assertIn(b".status-discovered{background:#e8f3ff", body)
+        self.assertIn(b".status-interested{background:#e9f7f2", body)
+        self.assertIn(b".status-recommended{background:#075e50;color:#fff", body)
         status, body = self.request("GET", "/api/jobs")
         payload = json.loads(body)
         self.assertEqual(payload["jobs"][0]["id"], self.job["id"])

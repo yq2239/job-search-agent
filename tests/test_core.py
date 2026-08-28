@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from jobtracker.core import JobStore, canonicalize_url, evaluate_job, make_job_id
+from jobtracker.core import JobStore, canonicalize_url, evaluate_job, make_job_id, normalize_posted_at
 
 
 REQUIREMENTS = {
@@ -80,6 +80,8 @@ class StoreTests(unittest.TestCase):
             "availability": "active",
             "last_verified_at": "2026-08-14T12:00:00+00:00",
             "verification_evidence": "official page contained title and Apply action",
+            "posted_at": "2026-08-12",
+            "posting_date_evidence": "official JobPosting datePosted",
         }
 
     def test_id_is_stable_and_url_is_canonical(self):
@@ -117,6 +119,19 @@ class StoreTests(unittest.TestCase):
         candidate.pop("last_verified_at")
         with self.assertRaises(ValueError):
             self.store.add(candidate)
+
+    def test_posting_date_is_validated_and_can_be_unknown(self):
+        job, _ = self.store.add(self.candidate())
+        updated = self.store.set_posting_date(job["id"], "2026-08-13", "official feed")
+        self.assertEqual(updated["posted_at"], "2026-08-13")
+        updated = self.store.set_posting_date(job["id"], None, "official page omitted date")
+        self.assertIsNone(updated["posted_at"])
+        with self.assertRaises(ValueError):
+            self.store.set_posting_date(job["id"], "not-a-date", "official feed")
+
+    def test_posting_date_cannot_be_future(self):
+        with self.assertRaises(ValueError):
+            normalize_posted_at("2999-01-01")
 
     def test_closed_verification_updates_status_history(self):
         job, _ = self.store.add(self.candidate())
