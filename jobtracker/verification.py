@@ -154,6 +154,40 @@ def classify_apple_job_html(page_html: str, expected_title: str) -> tuple[str, s
     return "active", "official Apple structured page returned the expected live posting"
 
 
+def classify_snowflake_careers_html(page_html: str, expected_title: str) -> tuple[str, str]:
+    """Validate Snowflake's canonical careers page from its structured Phenom payload."""
+    match = re.search(
+        r"phApp\.ddo\s*=\s*(\{.*?\});\s*phApp\.experimentData",
+        page_html,
+        flags=re.DOTALL,
+    )
+    if not match:
+        return "unknown", "official Snowflake careers page lacked structured job data"
+    try:
+        detail = json.loads(match.group(1))["jobDetail"]
+    except (json.JSONDecodeError, KeyError, TypeError):
+        return "unknown", "official Snowflake careers page did not contain a job detail record"
+    if detail.get("totalHits") == 0:
+        return "closed", "official Snowflake careers page reported no live job record"
+    try:
+        posting = detail["data"]["job"]
+    except (KeyError, TypeError):
+        return "unknown", "official Snowflake careers page lacked a structured job record"
+    if str(posting.get("title", "")).strip().casefold() != expected_title.strip().casefold():
+        return "unknown", "official Snowflake posting did not match the expected title"
+    visibility = posting.get("jobVisibility")
+    if (
+        not posting.get("jobSeqNo")
+        or not posting.get("reqId")
+        or not posting.get("applyUrl")
+        or posting.get("visibilityType") != "External"
+        or not isinstance(visibility, list)
+        or "external" not in visibility
+    ):
+        return "unknown", "official Snowflake job record lacked live external posting metadata"
+    return "active", "official Snowflake careers page returned the expected live posting"
+
+
 def _normalized_location(value: str) -> str:
     return re.sub(r"\s+", " ", value.strip().casefold()).replace(", california", ", ca")
 
@@ -256,6 +290,8 @@ def verify_job_url(url: str, expected_title: str, timeout: float = 35.0) -> Veri
             availability, evidence = classify_workday_job_json(page_html, expected_title)
         elif urlsplit(url).hostname == "jobs.apple.com":
             availability, evidence = classify_apple_job_html(page_html, expected_title)
+        elif urlsplit(url).hostname == "careers.snowflake.com":
+            availability, evidence = classify_snowflake_careers_html(page_html, expected_title)
         else:
             availability, evidence = classify_official_posting_html(page_html, expected_title)
         return VerificationResult(availability, checked_at, evidence)

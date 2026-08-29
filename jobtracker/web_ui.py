@@ -102,7 +102,7 @@ function renderStatusMetric(status,countId,companiesId){
   const jobs=state.jobs.filter(job=>job.status===status);$(countId).textContent=jobs.length;
   const byCompany=new Map();jobs.forEach(job=>byCompany.set(job.company,(byCompany.get(job.company)||0)+1));
   const companies=[...byCompany.entries()].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
-  $(companiesId).innerHTML=companies.length?companies.map(([company,count])=>`<button type="button" class="metric-company" data-company="${esc(company)}" title="Show all ${esc(company)} jobs"><span class="company-mark ${company==='Google DeepMind'?'deepmind':''}" aria-hidden="true">${companyMark(company)}</span><span class="metric-company-name">${esc(company)}</span><span class="metric-company-count">${count}</span></button>`).join(''):'<span class="metric-empty">No companies</span>';
+  $(companiesId).innerHTML=companies.length?companies.map(([company,count])=>`<button type="button" class="metric-company" data-company="${esc(company)}" data-status="${esc(status)}" title="Show ${esc(labels[status]||status)} ${esc(company)} jobs"><span class="company-mark ${company==='Google DeepMind'?'deepmind':''}" aria-hidden="true">${companyMark(company)}</span><span class="metric-company-name">${esc(company)}</span><span class="metric-company-count">${count}</span></button>`).join(''):'<span class="metric-empty">No companies</span>';
 }
 function metrics(){
   renderStatusMetric('manual_review','review','pendingCompanies');
@@ -216,9 +216,9 @@ $('results').addEventListener('click',async event=>{
 });
 $('statusMetrics').addEventListener('click',event=>{
   const button=event.target.closest('.metric-company');if(!button)return;
-  const company=button.dataset.company;
-  $('companyFilter').value=company;$('statusFilter').value='';$('search').value='';render();
-  $('results').scrollIntoView({behavior:'smooth',block:'start'});toast(`Showing all ${company} jobs`);
+  const company=button.dataset.company,status=button.dataset.status;
+  $('companyFilter').value=company;$('statusFilter').value=status;$('search').value='';render();
+  $('results').scrollIntoView({behavior:'smooth',block:'start'});toast(`Showing ${labels[status]||status} ${company} jobs`);
 });
 document.addEventListener('error',event=>{
   const image=event.target;

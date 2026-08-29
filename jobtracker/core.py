@@ -234,21 +234,30 @@ class JobStore:
                     continue
                 checked_at = result["last_verified_at"]
                 evidence = result.get("verification_evidence", "")
+                effective_availability = availability
+                effective_evidence = evidence
+                if availability == "unknown" and job.get("availability") == "closed":
+                    effective_availability = "closed"
+                    effective_evidence = (
+                        f"{evidence}; retaining previously confirmed closed state"
+                        if evidence
+                        else "inconclusive check; retaining previously confirmed closed state"
+                    )
                 job.update(
                     {
-                        "availability": availability,
+                        "availability": effective_availability,
                         "last_verified_at": checked_at,
-                        "verification_evidence": evidence,
+                        "verification_evidence": effective_evidence,
                         "updated_at": checked_at,
                     }
                 )
                 job.setdefault("verification_history", []).append(
                     {"at": checked_at, "availability": availability, "evidence": evidence}
                 )
-                if availability == "closed" and job.get("status") != "closed":
+                if effective_availability == "closed" and job.get("status") != "closed":
                     job["status"] = "closed"
                     job.setdefault("history", []).append(
-                        {"at": checked_at, "status": "closed", "note": evidence}
+                        {"at": checked_at, "status": "closed", "note": effective_evidence}
                     )
                 save_json(self.jobs_path, data)
                 return deepcopy(job)

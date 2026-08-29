@@ -68,8 +68,10 @@ class WebTests(unittest.TestCase):
         self.assertIn(b'id="referredCompanies"', body)
         self.assertIn(b'class="metric-company"', body)
         self.assertIn(b'data-company="${esc(company)}"', body)
+        self.assertIn(b'data-status="${esc(status)}"', body)
         self.assertIn(b"$('statusMetrics').addEventListener", body)
-        self.assertIn(b"$('statusFilter').value=''", body)
+        self.assertIn(b"$('statusFilter').value=status", body)
+        self.assertIn(b"Showing ${labels[status]||status} ${company} jobs", body)
         self.assertIn(b".metric-review{grid-column:span 2", body)
         labels = [b"Pending review", b"Discovered", b"Interested", b"Applied", b"Referred"]
         positions = [body.index(label) for label in labels]

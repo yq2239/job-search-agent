@@ -8,6 +8,7 @@ from jobtracker.verification import (
     classify_apple_job_html,
     classify_greenhouse_job_json,
     classify_official_posting_html,
+    classify_snowflake_careers_html,
     classify_workday_job_json,
     greenhouse_api_url,
     verify_tesla_snapshot,
@@ -97,6 +98,28 @@ class VerificationTests(unittest.TestCase):
         page = "<main><h1>OH SNAP! THIS JOB HAS BEEN CLOSED.</h1></main>"
         availability, _ = classify_official_posting_html(page, "AI Engineer")
         self.assertEqual(availability, "closed")
+
+    def test_snowflake_canonical_page_uses_structured_live_record(self):
+        payload = {"jobDetail": {"totalHits": 1, "data": {"job": {
+            "title": "Senior Data Scientist",
+            "jobSeqNo": "SNCOUS123EXTERNALENUS456",
+            "reqId": "REQ123",
+            "applyUrl": "https://jobs.ashbyhq.com/snowflake/456",
+            "visibilityType": "External",
+            "jobVisibility": ["internal", "external"],
+        }}}}
+        page = f"<script>phApp.ddo = {json.dumps(payload)}; phApp.experimentData = {{}};</script>"
+        self.assertEqual(
+            classify_snowflake_careers_html(page, "Senior Data Scientist")[0], "active"
+        )
+        self.assertEqual(
+            classify_snowflake_careers_html(page, "Different Role")[0], "unknown"
+        )
+
+    def test_snowflake_canonical_page_reports_missing_job_as_closed(self):
+        payload = {"jobDetail": {"totalHits": 0, "data": {}}}
+        page = f"<script>phApp.ddo = {json.dumps(payload)}; phApp.experimentData = {{}};</script>"
+        self.assertEqual(classify_snowflake_careers_html(page, "Closed Role")[0], "closed")
 
     def test_ashby_structured_posting_is_active(self):
         page = '''

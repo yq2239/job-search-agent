@@ -146,6 +146,29 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(updated["status"], "closed")
         self.assertEqual(updated["history"][-1]["status"], "closed")
 
+    def test_unknown_verification_does_not_overwrite_confirmed_closed_state(self):
+        job, _ = self.store.add(self.candidate())
+        closed = self.store.record_verification(
+            job["id"],
+            {
+                "availability": "closed",
+                "last_verified_at": "2026-08-14T13:00:00+00:00",
+                "verification_evidence": "official page reports job not found",
+            },
+        )
+        updated = self.store.record_verification(
+            closed["id"],
+            {
+                "availability": "unknown",
+                "last_verified_at": "2026-08-15T13:00:00+00:00",
+                "verification_evidence": "official page temporarily blocked the check",
+            },
+        )
+        self.assertEqual(updated["availability"], "closed")
+        self.assertEqual(updated["status"], "closed")
+        self.assertEqual(updated["verification_history"][-1]["availability"], "unknown")
+        self.assertIn("retaining previously confirmed closed state", updated["verification_evidence"])
+
     def test_canonicalize_url_drops_tracking(self):
         self.assertEqual(
             canonicalize_url("HTTPS://Example.COM/jobs/1/?utm_campaign=x#apply"),
