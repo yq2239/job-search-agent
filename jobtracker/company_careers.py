@@ -449,4 +449,40 @@ def refresh_new_jobs(store: JobStore, requirements: dict[str, object]) -> dict[s
 
     google = refresh_google_jobs(store, requirements)
     others = refresh_other_companies(store, requirements, checked_at=str(google["checked_at"]))
-    return {"checked_at": google["checked_at"], "Google Careers": google, **others}
+
+    def brief(job: dict[str, object]) -> dict[str, object]:
+        return {
+            key: job.get(key)
+            for key in (
+                "id",
+                "company",
+                "title",
+                "location",
+                "url",
+                "posted_at",
+                "fit_score",
+                "eligibility",
+                "eligibility_reasons",
+            )
+        }
+
+    def compact(result: dict[str, object]) -> dict[str, object]:
+        created = result.get("created", [])
+        refreshed = result.get("refreshed", [])
+        return {
+            **({"error": result["error"]} if result.get("error") else {}),
+            "seen": result.get("unique_postings_seen", result.get("seen", 0)),
+            "created": [brief(job) for job in created if isinstance(job, dict)],
+            "refreshed_count": len(refreshed) if isinstance(refreshed, list) else 0,
+            "skipped": result.get("skipped", 0),
+        }
+
+    companies = {
+        "Google Careers": compact(google),
+        **{
+            name: compact(result)
+            for name, result in others["companies"].items()
+            if isinstance(result, dict)
+        },
+    }
+    return {"checked_at": google["checked_at"], "companies": companies}
