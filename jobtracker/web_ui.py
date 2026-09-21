@@ -10,6 +10,8 @@ button,input,select,textarea{font:inherit}button,a,select{touch-action:manipulat
 .top{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:22px}
 h1{font-size:clamp(28px,5vw,44px);line-height:1.05;margin:0;color:var(--navy);letter-spacing:-.03em}.lede{color:var(--muted);margin:8px 0 0}
 .privacy{background:#e3f4ef;color:#066556;border:1px solid #b8ded3;border-radius:999px;padding:7px 11px;font-size:12px;font-weight:750;white-space:nowrap}
+.nav{display:flex;gap:8px;margin:18px 0 22px}.nav a{color:var(--muted);text-decoration:none;font-weight:800;padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:white}.nav a.active{color:white;background:var(--navy);border-color:var(--navy)}
+.freshness-note{display:none;background:linear-gradient(135deg,#eef2ff,#f8faff);border:1px solid #cbd5ff;border-radius:16px;padding:16px 18px;margin-bottom:18px;color:#35446b}.freshness-note strong{color:#283c8b}.new-view .freshness-note{display:block}.new-view .metrics{display:none}
 .metrics{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin:0 0 18px}
 .metric{background:white;border:1px solid var(--line);border-radius:14px;padding:15px 17px;box-shadow:var(--shadow)}
 .metric-review{grid-column:span 2;padding:17px 18px}
@@ -53,7 +55,9 @@ h1{font-size:clamp(28px,5vw,44px);line-height:1.05;margin:0;color:var(--navy);le
 @media(max-width:760px){.shell{width:min(100% - 20px,1160px);padding-top:22px}.top{display:block}.privacy{display:inline-block;margin-top:12px}.metrics{grid-template-columns:repeat(2,1fr)}.toolbar{grid-template-columns:1fr;position:static}}
 @media(max-width:760px){.editor,.note-form{grid-template-columns:1fr}.job-title{font-size:18px}.card-main,.notes{padding-left:15px;padding-right:15px}}
 </style></head><body><main class="shell">
-<header class="top"><div><h1>Smart Job Tracker</h1><p class="lede">Review opportunities, record decisions, and keep application context in one place.</p></div><span class="privacy">Local only</span></header>
+<header class="top"><div><h1 id="pageTitle">Smart Job Tracker</h1><p class="lede" id="pageLede">Review opportunities, record decisions, and keep application context in one place.</p></div><span class="privacy">Local only</span></header>
+<nav class="nav" aria-label="Tracker pages"><a id="allJobsLink" href="/">All jobs</a><a id="newJobsLink" href="/new">New jobs · 2 business days</a></nav>
+<aside class="freshness-note"><strong>Newly posted roles only.</strong> This page uses the employer posting date from the official careers source. Jobs with unknown dates are excluded.</aside>
 <section class="metrics" id="statusMetrics" aria-label="Jobs by status">
 <div class="metric metric-review"><b id="review">-</b><span>Pending review</span><div id="pendingCompanies" class="metric-companies" aria-label="Companies with jobs pending review"></div></div>
 <div class="metric metric-discovered"><b id="discovered">-</b><span>Discovered</span><div id="discoveredCompanies" class="metric-companies" aria-label="Companies with discovered jobs"></div></div>
@@ -73,9 +77,13 @@ h1{font-size:clamp(28px,5vw,44px);line-height:1.05;margin:0;color:var(--navy);le
 const state={jobs:[],statuses:[]};
 const labels={manual_review:'Pending review',discovered:'Discovered',recommended:'Referred',interested:'Interested',applied:'Applied',skipped:'Not applying',rejected:'Rejected',closed:'Closed',withdrawn:'Withdrawn'};
 const $=id=>document.getElementById(id);
+const newJobsView=window.location.pathname==='/new';
+document.body.classList.toggle('new-view',newJobsView);
+$('allJobsLink').classList.toggle('active',!newJobsView);$('newJobsLink').classList.toggle('active',newJobsView);
+if(newJobsView){document.title='New Jobs · Smart Job Tracker';$('pageTitle').textContent='New Jobs';$('pageLede').textContent='Employer-posted within the last two business days, newest first.'}
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const when=value=>value?new Date(value).toLocaleString():'Unknown time';
-function isWithinBusinessDays(value,limit=8,now=new Date()){
+function isWithinBusinessDays(value,limit=2,now=new Date()){
   if(!value)return false;
   const dateOnly=String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
   const added=dateOnly?new Date(Number(dateOnly[1]),Number(dateOnly[2])-1,Number(dateOnly[3])):new Date(value);
@@ -114,8 +122,8 @@ function metrics(){
 function visibleJobs(){
   const q=$('search').value.trim().toLowerCase();
   const company=$('companyFilter').value,status=$('statusFilter').value,sort=$('sort').value;
-  const jobs=state.jobs.filter(j=>(!company||j.company===company)&&(!status||j.status===status)&&(!q||[j.title,j.company,j.location,j.evidence].join(' ').toLowerCase().includes(q)));
-  jobs.sort((a,b)=>sort==='title'?a.title.localeCompare(b.title):sort==='updated'?String(b.updated_at).localeCompare(String(a.updated_at)):b.fit_score-a.fit_score);
+  const jobs=state.jobs.filter(j=>(!newJobsView||isWithinBusinessDays(j.posted_at,2))&&(!company||j.company===company)&&(!status||j.status===status)&&(!q||[j.title,j.company,j.location,j.evidence].join(' ').toLowerCase().includes(q)));
+  jobs.sort((a,b)=>newJobsView?String(b.posted_at).localeCompare(String(a.posted_at)):sort==='title'?a.title.localeCompare(b.title):sort==='updated'?String(b.updated_at).localeCompare(String(a.updated_at)):b.fit_score-a.fit_score);
   return jobs;
 }
 function statusOptions(job){
@@ -168,7 +176,7 @@ function historyList(job){
 function jobCard(job){
   const reasons=(job.eligibility_reasons||[]).join('; ');
   const mark=companyMark(job.company);
-  const recent=isWithinBusinessDays(job.posted_at)?'<span class="recent-chip" title="Posted by the employer within the last 8 business days">NEW POSTING</span>':'';
+  const recent=isWithinBusinessDays(job.posted_at,2)?'<span class="recent-chip" title="Posted by the employer within the last 2 business days">NEW POSTING</span>':'';
   return `<article class="card" data-id="${esc(job.id)}"><div class="card-main">
     <div class="job-head"><div><div class="company-line"><span class="company-mark ${job.company==='Google DeepMind'?'deepmind':''}" aria-hidden="true">${mark}</span><div><div class="company-name">${esc(job.company)}</div><div class="job-id">${esc(job.id)}</div></div></div><div class="role-line"><h2 class="job-title">${esc(job.title)}</h2><span class="status-chip ${statusClass(job.status)}">${esc(labels[job.status]||job.status)}</span>${recent}</div></div><div class="score"><span>${esc(job.fit_score)}<small>FIT</small></span></div></div>
     <div class="chips"><span class="chip">${esc(job.location)}</span><span class="chip">${esc(job.minimum_education)} minimum</span><span class="chip" title="${esc(job.posting_date_evidence||'')}">${job.posted_at?`posted ${esc(job.posted_at)}`:'posting date unavailable'}</span><span class="chip">${esc(job.availability)} · verified ${esc(when(job.last_verified_at))}</span></div>

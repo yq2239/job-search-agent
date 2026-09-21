@@ -27,6 +27,8 @@ This design lets multiple people use the same public code without sharing person
 - Applies hard location, sponsorship, and education requirements.
 - Verifies that an official posting is live before saving it.
 - Stores the employer's posting date when the official source exposes one.
+- Refreshes matching Google roles from Google Careers' structured official job feed.
+- Provides a dedicated `/new` page for roles posted within the last two business days.
 - Creates deterministic job IDs and prevents duplicate records.
 - Preserves status, note, and verification history.
 - Provides a private dashboard for filtering and reviewing jobs.
@@ -113,6 +115,20 @@ python3 -m jobtracker web
 ```
 
 Open [http://127.0.0.1:8765/](http://127.0.0.1:8765/) if a browser does not open automatically.
+
+The dedicated freshness view is available at [http://127.0.0.1:8765/new](http://127.0.0.1:8765/new). It only shows roles whose official employer timestamp falls within the last two business days; jobs with unknown posting dates are deliberately excluded.
+
+## Refreshing Google Careers
+
+Run an on-demand scan of the official Google Careers feed:
+
+```bash
+python3 -m jobtracker refresh-google
+```
+
+The scanner checks recent, date-sorted California results for the configured AI/ML, data-science, applied-science, and research-engineering searches. It reads the requisition ID, employer timestamp, title, locations, and qualifications embedded in Google's official structured response. Matching roles are deduplicated by Google's requisition ID and saved through the same conservative eligibility rules as manually added jobs. Because sponsorship is not stated per posting, new Google roles remain in **Pending review** until that requirement is confirmed.
+
+For reliable freshness, schedule this command regularly. The tracker records the exact employer timestamp published by Google and also preserves the local discovery time when a role first enters the tracker.
 
 ## Choosing a private state directory
 

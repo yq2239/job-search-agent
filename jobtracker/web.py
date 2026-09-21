@@ -114,7 +114,7 @@ def make_handler(store: JobStore, companies_path: Path | None = None) -> type[Ba
 
         def do_GET(self) -> None:
             path = urlsplit(self.path).path
-            if path == "/":
+            if path in {"/", "/new"}:
                 body = DASHBOARD_HTML.encode("utf-8")
                 self.reply(HTTPStatus.OK, body, "text/html; charset=utf-8")
                 return

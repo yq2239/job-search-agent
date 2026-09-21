@@ -102,7 +102,9 @@ class WebTests(unittest.TestCase):
         self.assertIn(b"function isWithinBusinessDays", body)
         self.assertIn(b"job.posted_at", body)
         self.assertIn(b"NEW POSTING", body)
-        self.assertIn(b"Posted by the employer within the last 8 business days", body)
+        self.assertIn(b"Posted by the employer within the last 2 business days", body)
+        self.assertIn(b'href="/new"', body)
+        self.assertIn(b"New jobs \xc2\xb7 2 business days", body)
         self.assertIn(b"job.posting_date_evidence", body)
         self.assertIn(b"String(value).match", body)
         self.assertIn(b"recent-chip", body)
@@ -115,6 +117,11 @@ class WebTests(unittest.TestCase):
         payload = json.loads(body)
         self.assertEqual(payload["jobs"][0]["id"], self.job["id"])
         self.assertEqual(payload["company_icons"]["Netflix"], "https://jobs.netflix.com/favicon.ico")
+
+        self.connection.request("GET", "/new")
+        response = self.connection.getresponse()
+        self.assertEqual(response.status, 200)
+        self.assertIn(b"Newly posted roles only", response.read())
 
     def test_company_icons_use_safe_configured_careers_hosts(self):
         self.assertEqual(

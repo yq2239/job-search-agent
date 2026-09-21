@@ -95,6 +95,10 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("list-companies", help="show companies of interest")
     sub.add_parser("validate", help="validate required files and stored records")
     sub.add_parser("verify-jobs", help="live-check all official posting URLs")
+    sub.add_parser(
+        "refresh-google",
+        help="discover and refresh matching roles from the official Google Careers feed",
+    )
     return parser
 
 
@@ -253,6 +257,10 @@ def main(argv: list[str] | None = None) -> int:
                     }
                 )
             print_json(results)
+        elif args.command == "refresh-google":
+            from .google_careers import refresh_google_jobs
+
+            print_json(refresh_google_jobs(store, load_json(paths.requirements)))
     except (KeyError, OSError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
