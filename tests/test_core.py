@@ -200,6 +200,17 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(updated["status"], "interested")
         self.assertEqual(updated["history"][-1]["note"], "keep me")
 
+    def test_same_source_id_at_another_company_is_not_a_duplicate(self):
+        first = self.candidate("https://example.com/jobs/123")
+        first["source_job_id"] = "123"
+        self.store.add(first)
+        second = self.candidate("https://another.example/jobs/123")
+        second["source_job_id"] = "123"
+        second["company"] = "Another Company"
+        _, created = self.store.add(second)
+        self.assertTrue(created)
+        self.assertEqual(len(self.store.list()), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -157,7 +157,12 @@ class JobStore:
         )
         source_id = candidate.get("source_job_id")
         for existing in jobs:
-            same_source = source_id and existing.get("source_job_id") == source_id
+            same_source = (
+                source_id
+                and existing.get("source_job_id") == source_id
+                and normalize_text(str(existing.get("company", "")))
+                == normalize_text(str(candidate.get("company", "")))
+            )
             if existing["id"] == candidate_id or existing.get("url") == candidate["url"] or same_source:
                 eligibility, reasons = evaluate_job(candidate, self._requirements())
                 existing.update(
